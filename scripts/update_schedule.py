@@ -60,29 +60,101 @@ def parse():
     return events
 
 def main():
-    OUT.parent.mkdir(parents=True,exist_ok=True)
-    old = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {"events":[],"meta":{},"history":[]}
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+
+    old = (
+        json.loads(OUT.read_text(encoding="utf-8"))
+        if OUT.exists()
+        else {"events": [], "meta": {}, "history": []}
+    )
+
     checked = now()
+    meta = old.get("meta", {})
+    history = old.get("history", [])
+    old_events = old.get("events", [])
+
     try:
         events = parse()
-        old_events = old.get("events",[])
-        old_hash = hashlib.sha256(json.dumps(old_events,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
-        new_hash = hashlib.sha256(json.dumps(events,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
-        meta = old.get("meta",{})
-        history = old.get("history",[])
-        if not old_events or old_hash != new_hash:
-            summary = "Загружена первая версия расписания." if not old_events else f"Расписание изменилось: было {len(old_events)} записей, стало {len(events)}."
+
+        old_hash = hashlib.sha256(
+            json.dumps(
+                old_events, ensure_ascii=False, sort_keys=True
+            ).encode()
+        ).hexdigest()
+
+        new_hash = hashlib.sha256(
+            json.dumps(
+                events, ensure_ascii=False, sort_keys=True
+            ).encode()
+        ).hexdigest()
+
+        changed = not old_events or old_hash != new_hash
+
+        if changed:
+            summary = (
+                "Загружена первая версия расписания."
+                if not old_events
+                else (
+                    f"Расписание изменилось: было {len(old_events)} "
+                    f"записей, стало {len(events)}."
+                )
+            )
+
             meta["last_changed"] = checked
             meta["change_summary"] = summary
-            history.insert(0,{"date":checked,"kind":"изменение" if old_events else "первичная загрузка","summary":summary})
-        meta.update({"last_checked":checked,"source_url":URL,"error":False,"events_count":len(events)})
-        payload={"events":events,"meta":meta,"history":history[:50]}
+
+            history.insert(0, {
+                "date": checked,
+                "kind": "изменение" if old_events else "первичная загрузка",
+                "summary": summary,
+            })
+
+            check_summary = (
+                "Проверка расписания — Первая загрузка"
+                if not old_events
+                else "Проверка расписания — Обнаружены изменения"
+            )
+        else:
+            check_summary = "Проверка расписания — Без изменений"
+
+        meta.update({
+            "last_checked": checked,
+            "source_url": URL,
+            "error": False,
+            "events_count": len(events),
+            "check_summary": check_summary,
+        })
+
+        payload = {
+            "events": events,
+            "meta": meta,
+            "history": history[:50],
+        }
+
     except Exception as exc:
-        meta=old.get("meta",{})
-        meta.update({"last_checked":checked,"error":True,"error_message":str(exc)})
-        payload={**old,"meta":meta}
-        print(f"Ошибка обновления; старые данные не удалены: {exc}")
-        # Do not fail workflow: keep the site buildable, but expose failure state.
-    OUT.write_text(json.dumps(payload,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
-    print(f"Проверка завершена: {payload.get('meta',{}).get('events_count','без новых данных')} событий.")
-if __name__ == "__main__": main()
+        print(f"Ошибка обновления расписания: {exc}")
+
+        meta.update({
+            "last_checked": checked,
+            "source_url": URL,
+            "error": True,
+            "check_summary": "Проверка расписания — Ошибка обновления",
+            "error_message": str(exc),
+        })
+
+        payload = {
+            "events": old_events,
+            "meta": meta,
+            "history": history[:50],
+        }
+
+    OUT.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    print(payload["meta"]["check_summary"])
+
+
+if __name__ == "__main__":
+    main()
