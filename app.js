@@ -12,7 +12,11 @@ function shownEvents(){const g=$('#group').value;return data.events.filter(e=>g=
 function setStatus(){
  const m=data.meta||{};
  $('#checkedAt').textContent=m.last_checked?`Проверено: ${new Date(m.last_checked).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})} (МСК)`:'Пока не было успешной проверки';
- $('#statusText').textContent=m.error?'Не удалось обновить источник':(m.last_checked?'Источник проверен':'Ожидается первая проверка');
+ $('#statusText').textContent = m.error
+  ? (m.check_summary || 'Проверка расписания — Ошибка проверки')
+  : (m.check_summary || (m.last_checked
+      ? 'Источник проверен'
+      : 'Ожидается первая проверка'));
  $('#changeText').textContent=m.last_changed?`${new Date(m.last_changed).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})} (МСК). ${m.change_summary||'Обнаружено изменение расписания.'}`:'Изменения пока не зафиксированы. Дата появится после первого отличия от предыдущей версии.';
  const hist=data.history||[];
  $('#historyList').innerHTML=hist.length?hist.slice(0,8).map(h=>`<div class="historyitem"><span class="tag">${esc(h.kind||'обновление')}</span><b>${esc(h.date?new Date(h.date).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'}):'Дата неизвестна')}</b><p>${esc(h.summary||'Расписание проверено.')}</p></div>`).join(''):'<div class="historyitem"><b>История пока пуста</b><p>Когда GitHub Actions обнаружит первое изменение, оно появится здесь.</p></div>';
