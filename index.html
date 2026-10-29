@@ -2,31 +2,30 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827"><title>Расписание — Экономическая безопасность</title>
+<meta name="theme-color" content="#4C514A"><title>Расписание — Экономическая безопасность</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="top">
-  <div class="brand"><div class="mark">Р</div><div><strong>РАСПИСАНИЕ</strong><small>Экономическая безопасность · ЭБ-5-23-01/02</small></div></div>
-  <a class="source" href="https://spb.ranepa.ru/raspisanie/ekonomicheskaya-bezopasnost-eb-5-23-01-eb-5-23-02/" target="_blank" rel="noreferrer">Сайт вуза ↗</a>
+  <a class="brand" href="./" aria-label="На главную"><div class="mark">Р</div><div><strong>РАСПИСАНИЕ</strong><small>Экономическая безопасность · ЭБ-5-23-01/02</small></div></a>
+  <div class="top-actions"><button id="deviceToggle" class="mode-toggle" aria-pressed="false" title="Переключить представление">Вид: Телефон</button><a class="source" href="https://spb.ranepa.ru/raspisanie/ekonomicheskaya-bezopasnost-eb-5-23-01-eb-5-23-02/" target="_blank" rel="noreferrer">Сайт вуза ↗</a></div>
 </header>
 <main>
   <section class="hero">
     <div><p class="eyebrow">УЧЕБНЫЙ КАЛЕНДАРЬ</p><h1>Твоё расписание,<br><span>без сюрпризов.</span></h1>
-    <p class="muted">Актуальные пары, преподаватели, аудитории и история изменений в одном месте.</p></div>
+    <p class="muted">Пары, экзамены, преподаватели и аудитории — в одном месте.</p></div>
     <div class="status"><span class="pulse"></span><div><b id="statusText">Загружаю данные…</b><small id="checkedAt">Проверяем состояние расписания</small></div></div>
   </section>
   <section class="changebar"><div class="changeicon">↻</div><div class="changebody"><b>Последнее обнаруженное изменение</b><p id="changeText">Загружаю историю изменений…</p></div><button id="refreshBtn" class="outline">Обновить экран</button></section>
+  <section class="modebar" aria-label="Тип расписания"><button id="classesMode" class="mode-tab active" aria-pressed="true">Занятия</button><button id="sessionMode" class="mode-tab" aria-pressed="false">Сессия</button></section>
+  <section id="sessionNotice" class="session-notice" hidden></section>
   <section class="toolbar">
     <div class="switcher"><button data-view="week" class="view active">Неделя</button><button data-view="month" class="view">Месяц</button><button data-view="list" class="view">Список</button></div>
     <div class="nav"><button id="prev" aria-label="Предыдущий период">←</button><strong id="periodTitle">Загрузка…</strong><button id="next" aria-label="Следующий период">→</button><button id="today" class="today">Сегодня</button></div>
-    <div class="actions"><select id="group"><option value="all">Обе группы</option><option value="ЭБ-5-23-01">ЭБ-5-23-01</option><option value="ЭБ-5-23-02">ЭБ-5-23-02</option></select><button id="ics" class="primary">Экспорт .ics</button></div>
+    <div class="actions"><select id="group" aria-label="Учебная группа"><option value="all">Обе группы</option><option value="ЭБ-5-23-01">ЭБ-5-23-01</option><option value="ЭБ-5-23-02">ЭБ-5-23-02</option></select><button id="ics" class="primary">Экспорт .ics</button></div>
   </section>
   <section id="calendar" class="calendar" aria-live="polite"></section>
-  <section class="history">
-    <div><p class="eyebrow">КОНТРОЛЬ ИЗМЕНЕНИЙ</p><h2>Что поменялось</h2><p class="muted">Изменения фиксируются при ежедневной проверке сайта вуза.</p></div>
-    <div id="historyList" class="historylist"><p class="muted">Загружаю…</p></div>
-  </section>
+  <section class="history"><div><p class="eyebrow">КОНТРОЛЬ ИЗМЕНЕНИЙ</p><h2>Что поменялось</h2><p class="muted">Изменения фиксируются при ежедневной проверке сайта вуза.</p></div><div id="historyList" class="historylist"><p class="muted">Загружаю…</p></div></section>
   <footer><span>Источник: Президентская академия в Санкт-Петербурге</span><span>Автообновление: ежедневно · время указано по Москве</span></footer>
 </main>
 <script src="app.js"></script>
