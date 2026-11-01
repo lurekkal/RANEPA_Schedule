@@ -2666,13 +2666,13 @@
     }
   ],
   "meta": {
-    "last_checked": "2026-10-31T12:45:14+03:00",
+    "last_checked": "2026-11-01T13:36:21+03:00",
     "last_changed": "2026-10-31T12:45:14+03:00",
     "change_summary": "Расписание изменилось: было 192 записей, стало 222.",
     "source_url": "https://spb.ranepa.ru/raspisanie/ekonomicheskaya-bezopasnost-eb-5-23-01-eb-5-23-02/",
     "error": false,
     "events_count": 222,
-    "check_summary": "Проверка расписания — Обнаружены изменения"
+    "check_summary": "Проверка расписания — Без изменений"
   },
   "history": [
     {
