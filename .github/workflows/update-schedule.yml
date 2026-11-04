@@ -1,49 +1,65 @@
-name: Update Schedule
+name: Update university schedule
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Запуск каждые 6 часов (можно изменить на '0 8 * * *' для запуска раз в день в 08:00 МСК)
-  workflow_dispatch:       # Возможность ручного запуска из вкладки Actions
+    - cron: "17 3 * * *" # ежедневно в 06:17 по Москве (UTC+3)
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Важно для корректной работы git rebase
+          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run update script
+      - name: Update schedule data
         run: python scripts/update_schedule.py
 
-      - name: Stage changes
-        run: git add data/
-
-      - name: Pull latest changes (if any)
+      - name: Commit refreshed data
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Пытаемся подтянуть изменения. Если их нет или возникает конфликт, не прерываем выполнение
-          git pull --rebase origin main || true
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Проверяем, есть ли изменения в индексе. Если есть — коммитим и пушим.
-          git diff --staged --quiet || (git commit -m "chore: auto-update schedule data" && git push origin main)
+          git add data/schedule.json
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: refresh university schedule"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
