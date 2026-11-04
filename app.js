@@ -29,30 +29,59 @@ function shownEvents() {
 
 function setStatus() {
     const m = data.meta || {};
-    $('#checkedAt').textContent = m.last_checked ? `Проверено: ${new Date(m.last_checked).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)` : 'Пока не было успешной проверки';
-    $('#statusText').textContent = m.error ? (m.check_summary || 'Проверка расписания — Ошибка проверки') : (m.check_summary || (m.last_checked ? 'Источник проверен' : 'Ожидается первая проверка'));
-    $('#changeText').textContent = m.last_changed ? `${new Date(m.last_changed).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК). ${m.change_summary || 'Обнаружено изменение расписания.'}` : 'Изменения пока не зафиксированы.';
+    $('#checkedAt').textContent = m.last_checked
+        ? `Проверено: ${new Date(m.last_checked).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК)`
+        : 'Пока не было успешной проверки';
+    $('#statusText').textContent = m.error
+        ? (m.check_summary || 'Проверка расписания — Ошибка проверки')
+        : (m.check_summary || (m.last_checked ? 'Источник проверен' : 'Ожидается первая проверка'));
+    $('#changeText').textContent = m.last_changed
+        ? `${new Date(m.last_changed).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })} (МСК). ${m.change_summary || 'Обнаружено изменение расписания.'}`
+        : 'Изменения пока не зафиксированы. Дата появится после первого отличия от предыдущей версии.';
 
     const hist = data.history || [];
-    $('#historyList').innerHTML = hist.length ? hist.slice(0, 8).map(h => 
-        `<div class="historyitem"><span class="tag">${esc(h.kind || 'обновление')}</span><b>${esc(h.date ? new Date(h.date).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) : 'Дата неизвестна')}</b><p>${esc(h.summary || 'Расписание проверено.')}</p></div>`
-    ).join('') : `<div class="historyitem"><b>История пока пуста</b><p>Когда GitHub Actions обнаружит первое изменение, оно появится здесь.</p></div>`;
+    $('#historyList').innerHTML = hist.length
+        ? hist.slice(0, 8).map(h => `
+            <div class="historyitem">
+                <span class="tag">${esc(h.kind || 'обновление')}</span>
+                <b>${esc(h.date ? new Date(h.date).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }) : 'Дата неизвестна')}</b>
+                <p>${esc(h.summary || 'Расписание проверено.')}</p>
+            </div>`).join('')
+        : `<div class="historyitem"><b>История пока пуста</b><p>Когда GitHub Actions обнаружит первое изменение, оно появится здесь.</p></div>`;
 }
 
-// ✅ ИСПРАВЛЕНО: корректное экранирование HTML
 function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
     }[c]));
 }
 
 function eventHtml(e) {
     let cls = (e.type === 'Пр' || e.type === 'За' || e.type === 'Экз') ? 'practice' : (e.type === 'ДСР' ? 'other' : '');
-    return `<article class="event ${cls}">
-        <div class="time">${esc(e.start || 'Время не указано')}${e.end ? '–' + esc(e.end) : ''}</div>
-        <div class="subject">${esc(e.subject)}</div>
-        <div class="detail">${esc(e.type || (mode === 'session' ? 'Аттестация' : 'Занятие'))} · ${esc(e.teacher || 'Преподаватель не указан')}<br>Ауд. ${esc(e.room || 'не указана')}<br>${esc(e.groups || '')}</div>
-    </article>`;
+    return `
+        <article class="event ${cls}">
+            <div class="time">${esc(e.start || 'Время не указано')}${e.end ? '–' + esc(e.end) : ''}</div>
+            <div class="subject">${esc(e.subject)}</div>
+            <div class="detail">
+                ${esc(e.type || (mode === 'session' ? 'Аттестация' : 'Занятие'))} · ${esc(e.teacher || 'Преподаватель не указан')}<br>
+                Ауд. ${esc(e.room || 'не указана')}<br>
+                ${esc(e.groups || '')}
+            </div>
+        </article>`;
+}
+
+function showOfflineNotice() {
+    const existing = document.querySelector('.offline-notice');
+    if (existing) return;
+    const notice = document.createElement('div');
+    notice.className = 'session-notice offline-notice';
+    notice.innerHTML = '⚠️ <b>Офлайн-режим.</b> Показаны данные из последнего кэша. Подключись к сети для обновления.';
+    const modebar = document.querySelector('.modebar');
+    if (modebar) modebar.after(notice);
 }
 
 function render() {
@@ -64,14 +93,14 @@ function render() {
 
     if (mode === 'session') {
         const m = sessionData.meta || {};
-        notice.innerHTML = `<b>Режим сессии.</b> Источник: <a href="${SESSION_SOURCE}" target="_blank" rel="noreferrer">страница промежуточной аттестации ↗</a>. ${m.last_checked ? 'Проверено: ' + esc(new Date(m.last_checked).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })) : 'Автоматическая загрузка ещё не подключена.'}`;
+        notice.innerHTML = `<b>Режим сессии.</b> Источник: <a href="${SESSION_SOURCE}" target="_blank" rel="noreferrer">страница промежуточной аттестации на сайте вуза ↗</a>. ${m.last_checked ? 'Последняя проверка: ' + esc(new Date(m.last_checked).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })) : 'Автоматическая загрузка ещё не подключена.'}`;
     }
 
     if (!events.length) {
         $('#periodTitle').textContent = 'Нет данных';
-        cal.innerHTML = mode === 'session' 
-            ? `<div class="empty">${sessionData.meta?.error_message ? 'Ошибка: ' + esc(sessionData.meta.error_message) : 'Расписание сессии пока не загружено.'}<br><br><a style="color:#c8d3bf" href="${SESSION_SOURCE}" target="_blank" rel="noreferrer">Открыть на сайте вуза</a></div>`
-            : `<div class="empty">Расписание пока не загружено. Проверьте вкладку Actions в GitHub.</div>`;
+        cal.innerHTML = mode === 'session'
+            ? `<div class="empty">${sessionData.meta?.error_message ? 'Не удалось загрузить расписание сессии: ' + esc(sessionData.meta.error_message) : 'Расписание сессии пока не загружено в data/session.json.'}<br><br><a style="color:#c8d3bf" href="${SESSION_SOURCE}" target="_blank" rel="noreferrer">Открыть источник на сайте вуза</a></div>`
+            : `<div class="empty">Расписание пока не загружено. Проверьте вкладку Actions в GitHub или откройте <a style="color:#c8d3bf" href="${SOURCE}" target="_blank" rel="noreferrer">расписание на сайте вуза</a>.</div>`;
         return;
     }
 
@@ -91,7 +120,10 @@ function renderWeek(cal, events) {
         let d = new Date(start);
         d.setDate(d.getDate() + i);
         let list = events.filter(e => e.date === dateKey(d));
-        return `<div class="daycol"><div class="dayhead ${sameDay(d, new Date()) ? 'todayhead' : ''}">${WD[d.getDay()]}<b>${d.getDate()}</b></div><div class="events">${list.length ? list.map(eventHtml).join('') : '<div class="muted" style="text-align:center;font-size:10px;padding:15px 0">—</div>'}</div></div>`;
+        return `<div class="daycol">
+            <div class="dayhead ${sameDay(d, new Date()) ? 'todayhead' : ''}">${WD[d.getDay()]}<b>${d.getDate()}</b></div>
+            <div class="events">${list.length ? list.map(eventHtml).join('') : '<div class="muted" style="text-align:center;font-size:10px;padding:15px 0">—</div>'}</div>
+        </div>`;
     }).join('')}</div>`;
 }
 
@@ -107,7 +139,11 @@ function renderMonth(cal, events) {
         let d = new Date(start);
         d.setDate(start.getDate() + i);
         let list = events.filter(e => e.date === dateKey(d));
-        html += `<div class="monthcell ${d.getMonth() !== cursor.getMonth() ? 'dim' : ''}"><div class="monthnum ${sameDay(d, new Date()) ? 'todaynum' : ''}">${d.getDate()}</div>${list.slice(0, 3).map(e => `<div class="minievent">${esc(e.start)} ${esc(e.subject)}</div>`).join('')}${list.length > 3 ? `<div class="minievent">+ ещё ${list.length - 3}</div>` : ''}</div>`;
+        html += `<div class="monthcell ${d.getMonth() !== cursor.getMonth() ? 'dim' : ''}">
+            <div class="monthnum ${sameDay(d, new Date()) ? 'todaynum' : ''}">${d.getDate()}</div>
+            ${list.slice(0, 3).map(e => `<div class="minievent">${esc(e.start)} ${esc(e.subject)}</div>`).join('')}
+            ${list.length > 3 ? `<div class="minievent">+ ещё ${list.length - 3}</div>` : ''}
+        </div>`;
     }
     cal.innerHTML = `<div class="monthgrid">${html}</div>`;
 }
@@ -122,7 +158,9 @@ function renderList(cal, events) {
     rangeEnd.setDate(rangeEnd.getDate() + 6);
     const visible = keys.filter(k => parseDate(k) >= rangeStart && parseDate(k) <= rangeEnd);
     $('#periodTitle').textContent = `Список · ${fmtDate(rangeStart)} — ${fmtDate(rangeEnd)}`;
-    cal.innerHTML = visible.length ? visible.map(k => `<div class="listday"><h3>${WD[parseDate(k).getDay()]}, ${fmtDate(parseDate(k))}</h3>${grouped[k].map(eventHtml).join('')}</div>`).join('') : '<div class="empty">На выбранной неделе событий не найдено.</div>';
+    cal.innerHTML = visible.length
+        ? visible.map(k => `<div class="listday"><h3>${WD[parseDate(k).getDay()]}, ${fmtDate(parseDate(k))}</h3>${grouped[k].map(eventHtml).join('')}</div>`).join('')
+        : '<div class="empty">На выбранной неделе событий не найдено.</div>';
 }
 
 function move(n) {
@@ -135,7 +173,7 @@ function exportICS() {
     const events = shownEvents().filter(e => e.start && e.start.includes(':'));
     if (!events.length) { alert('Нет событий с корректным временем для экспорта.'); return; }
 
-    const stamp = d => d.toISOString().replace(/[-:]/g, '').replace(/.\d{3}/, '');
+    const stamp = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//RANEPA Schedule//RU', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
 
     events.forEach(e => {
@@ -143,7 +181,17 @@ function exportICS() {
         const [sh, sm] = e.start.split(':');
         const [eh, em] = (e.end || e.start).split(':');
         const desc = `Преподаватель: ${e.teacher || 'не указан'}\nАудитория: ${e.room || 'не указана'}\nГруппа: ${e.groups || ''}`;
-        lines.push('BEGIN:VEVENT', `UID:${dt}-${sh}${sm}-${encodeURIComponent(e.subject)}@ranepa`, `DTSTAMP:${stamp(new Date())}`, `DTSTART;TZID=Europe/Moscow:${dt}T${sh}${sm}00`, `DTEND;TZID=Europe/Moscow:${dt}T${eh}${em}00`, `SUMMARY:${icsEscape(e.subject)}`, `LOCATION:${icsEscape(e.room || '')}`, `DESCRIPTION:${icsEscape(desc)}`, 'END:VEVENT');
+        lines.push(
+            'BEGIN:VEVENT',
+            `UID:${dt}-${sh}${sm}-${encodeURIComponent(e.subject)}@ranepa-schedule`,
+            `DTSTAMP:${stamp(new Date())}`,
+            `DTSTART;TZID=Europe/Moscow:${dt}T${sh}${sm}00`,
+            `DTEND;TZID=Europe/Moscow:${dt}T${eh}${em}00`,
+            `SUMMARY:${icsEscape(e.subject)}`,
+            `LOCATION:${icsEscape(e.room || '')}`,
+            `DESCRIPTION:${icsEscape(desc)}`,
+            'END:VEVENT'
+        );
     });
     lines.push('END:VCALENDAR');
 
@@ -155,9 +203,12 @@ function exportICS() {
     URL.revokeObjectURL(a.href);
 }
 
-// ✅ ИСПРАВЛЕНО: корректное экранирование для ICS
 function icsEscape(s) {
-    return String(s).replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+    return String(s)
+        .replace(/\\/g, '\\\\')
+        .replace(/,/g, '\\,')
+        .replace(/;/g, '\\;')
+        .replace(/\n/g, '\\n');
 }
 
 // === Обработчики событий ===
@@ -181,6 +232,8 @@ function setMode(next) {
     mode = next;
     $('#classesMode').classList.toggle('active', mode === 'classes');
     $('#sessionMode').classList.toggle('active', mode === 'session');
+    $('#classesMode').setAttribute('aria-pressed', String(mode === 'classes'));
+    $('#sessionMode').setAttribute('aria-pressed', String(mode === 'session'));
     cursor = new Date();
     cursor.setHours(0, 0, 0, 0);
     render();
@@ -195,6 +248,7 @@ $('#deviceToggle').onclick = () => {
     if (deviceMode === 'phone') document.body.classList.add('force-phone');
     if (deviceMode === 'desktop') document.body.classList.add('force-desktop');
     $('#deviceToggle').textContent = deviceMode === 'phone' ? 'Вид: Телефон' : deviceMode === 'desktop' ? 'Вид: ПК' : 'Вид: Авто';
+    $('#deviceToggle').setAttribute('aria-pressed', String(deviceMode !== 'auto'));
     render();
 };
 
@@ -203,8 +257,20 @@ async function loadData(force = false) {
         const r = await fetch('data/schedule.json' + (force ? '?t=' + Date.now() : ''), { cache: 'no-store' });
         if (!r.ok) throw Error('schedule.json not found');
         data = await r.json();
+        localStorage.setItem('ranepa_schedule_backup', JSON.stringify(data));
         render();
     } catch (e) {
+        const backup = localStorage.getItem('ranepa_schedule_backup');
+        if (backup) {
+            try {
+                data = JSON.parse(backup);
+                data.meta = data.meta || {};
+                data.meta.offline_warning = true;
+                showOfflineNotice();
+                render();
+                return;
+            } catch {}
+        }
         data = { events: [], meta: { error: true, check_summary: 'Не удалось загрузить расписание' }, history: [] };
         render();
     }
