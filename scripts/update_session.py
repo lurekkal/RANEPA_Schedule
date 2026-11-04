@@ -1,56 +1,34 @@
 import json, sys
 from datetime import datetime, timezone
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+import requests
 from bs4 import BeautifulSoup
 
 URL = "https://spb.ranepa.ru/raspisanie/eb-5-23-01-02/"
 FILE = Path("data/session.json")
 FILE.parent.mkdir(exist_ok=True)
 
-def main():
-    print(f"📥 Загрузка расписания сессии (через браузер): {URL}")
-    
-    html_content = ""
-    with sync_playwright() as p:
-        try:
-            # Запускаем Chromium в headless-режиме (без интерфейса)
-            browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
-            page = browser.new_page()
-            page.set_extra_http_headers({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
-            
-            print("   ⏳ Загрузка страницы...")
-            page.goto(URL, wait_until="domcontentloaded", timeout=30000)
-            
-            # Пытаемся найти выпадающий список и выбрать "100" или "Все"
-            try:
-                selects = page.locator("select").all()
-                for sel in selects:
-                    options = sel.locator("option").all_text_contents()
-                    # Ищем опцию, где есть "100", "Все" или "All"
-                    target_option = next((opt.strip() for opt in options if "100" in opt or "Все" in opt or "All" in opt), None)
-                    if target_option:
-                        print(f"   ✅ Найдено '{target_option}'. Выбираем...")
-                        sel.select_option(label=target_option)
-                        # Ждем, пока таблица перерисуется
-                        page.wait_for_timeout(2500) 
-                        break
-            except Exception as e:
-                print(f"   ⚠️ Не удалось переключить лимит через UI: {e}")
-            
-            html_content = page.content()
-            browser.close()
-            
-        except Exception as e:
-            print(f"❌ Ошибка браузера: {e}")
-            return
+def get_academic_year(month: int) -> int:
+    """
+    Определяет год по правилу учебного года:
+    - Сентябрь (9) – Декабрь (12) → текущий год
+    - Январь (1) – Август (8) → следующий год
+    """
+    current_year = datetime.now().year
+    if month >= 9:  # Сентябрь–Декабрь
+        return current_year
+    else:  # Январь–Август
+        return current_year + 1
 
-    # Парсим полученный полный HTML
+def main():
+    print(f"📥 Загрузка расписания сессии: {URL}")
     try:
-        soup = BeautifulSoup(html_content, "html.parser")
-        events = []
+        r = requests.get(URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
         
-        for row in soup.select("table tr")[1:]: # Пропускаем заголовок
+        events = []
+        for row in soup.select("table tr")[1:]:
             cells = row.find_all("td")
             if len(cells) < 6:
                 continue
@@ -62,7 +40,11 @@ def main():
             if not date_d or not date_m:
                 continue
             
-            date_iso = f"2026-{date_m.zfill(2)}-{date_d.zfill(2)}"
+            # ✅ УМНОЕ ОПРЕДЕЛЕНИЕ ГОДА
+            month_num = int(date_m)
+            year = get_academic_year(month_num)
+            date_iso = f"{year}-{date_m.zfill(2)}-{date_d.zfill(2)}"
+            
             start, end = (time_t.split("–") + [""])[:2] if "–" in time_t else (time_t, "")
             
             events.append({
@@ -95,7 +77,7 @@ def main():
         print(f"✅ Успешно сохранено: {len(events)} событий сессии!")
 
     except Exception as e:
-        print(f"❌ Ошибка парсинга HTML: {e}")
+        print(f"❌ Критическая ошибка: {e}")
 
 if __name__ == "__main__":
     main()
