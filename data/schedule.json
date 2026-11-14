@@ -1262,8 +1262,8 @@
     },
     {
       "date": "2026-11-23",
-      "start": "12:00",
-      "end": "14:50",
+      "start": "15:00",
+      "end": "17:50",
       "subject": "Финансовая безопасность",
       "type": "Пр",
       "teacher": "проф. Лисица М.И.",
@@ -1272,8 +1272,8 @@
     },
     {
       "date": "2026-11-23",
-      "start": "15:00",
-      "end": "17:50",
+      "start": "12:00",
+      "end": "14:50",
       "subject": "Финансовая безопасность",
       "type": "Пр",
       "teacher": "проф. Лисица М.И.",
@@ -1923,7 +1923,7 @@
   ],
   "meta": {
     "source_url": "https://spb.ranepa.ru/raspisanie/ekonomicheskaya-bezopasnost-eb-5-23-01-eb-5-23-02/",
-    "last_checked": "2026-11-14T04:50:50.348942Z",
+    "last_checked": "2026-11-14T12:56:15.420150Z",
     "error": false,
     "events_count": 192,
     "history": [
